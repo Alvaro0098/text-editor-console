@@ -1,17 +1,15 @@
+# composite/component_main.py
 from abc import ABC, abstractmethod
+from typing import List, Union
 
-class ComponentMain(ABC):
+class ComponenteDocumento(ABC):
+    """Componente - Define la interfaz común para la estructura del documento."""
     @abstractmethod
-    def contar_palabras(self):
+    def contar_palabras(self) -> int:
         """Cuenta el número de palabras en el componente."""
         pass
-
+    
     @abstractmethod
-    def contar_paginas(self):
-        """Cuenta el número de páginas en el componente."""
-        pass
-
-    @abstractmethod
-    def mostrar(self):
-        """Muestra la representación textual del componente."""
+    def mostrar(self) -> str:
+        """Muestra la representación formateada del componente."""
         pass

@@ -1,18 +1,21 @@
-from .component_main import ComponentMain
-from .pagina import Pagina
+# composite/documento.py
+from typing import List
 
-class Documento(ComponentMain):
+class Documento(ComponenteDocumento):
+    """Compuesto (Composite) - Raíz de la jerarquía."""
     def __init__(self):
-        self.hijos = []
+        self.hijos: List[Pagina] = []
 
     def agregar_pagina(self, pagina: Pagina):
         self.hijos.append(pagina)
 
-    def contar_palabras(self):
+    def contar_palabras(self) -> int:
         return sum(hijo.contar_palabras() for hijo in self.hijos)
 
-    def contar_paginas(self):
-        return sum(hijo.contar_paginas() for hijo in self.hijos)
-
-    def mostrar(self):
+    def mostrar(self) -> str:
+        """Responsabilidad: Retorna la vista completa del documento (separando páginas)."""
         return "\n\n\n".join(hijo.mostrar() for hijo in self.hijos)
+
+    def contar_paginas(self) -> int:
+        """Responsabilidad: Genera una estadística, contando los elementos Pagina."""
+        return len(self.hijos)
