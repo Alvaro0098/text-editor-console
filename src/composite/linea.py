@@ -1,7 +1,11 @@
-# composite/linea.py
-from strategy.alineacion_strategy import IStrategyAlineacion
-from strategy.alineacion_izquierda import AlineacionIzquierda
+from typing import List
+from .palabra import Palabra # Para List[Palabra]
+# 🚨 FALTABA: Importar la clase base desde el archivo hermano.
+from .component_main import ComponenteDocumento
 
+# Imports de Strategy (asumiendo que están en src/strategy)
+from ..strategy.alineacion_strategy import IStrategyAlineacion 
+from ..strategy.alineacion_izquierda import AlineacionIzquierda
 class Linea(ComponenteDocumento):
     """Compuesto (Composite) - Contiene palabras y aplica una estrategia de alineación."""
     def __init__(self, ancho: int = 80, alineacion: IStrategyAlineacion = AlineacionIzquierda()):

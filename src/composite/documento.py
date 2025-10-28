@@ -1,6 +1,7 @@
-# composite/documento.py
 from typing import List
-
+from .pagina import Pagina # Para List[Pagina]
+# 🚨 FALTABA: Importar la clase base desde el archivo hermano.
+from .component_main import ComponenteDocumento
 class Documento(ComponenteDocumento):
     """Compuesto (Composite) - Raíz de la jerarquía."""
     def __init__(self):

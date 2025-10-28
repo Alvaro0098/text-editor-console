@@ -1,5 +1,6 @@
-# composite/palabra.py
 from dataclasses import dataclass
+# 🚨 FALTABA: Importar la clase base desde el archivo hermano.
+from .component_main import ComponenteDocumento
 
 @dataclass
 class Palabra(ComponenteDocumento):
