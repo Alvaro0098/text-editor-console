@@ -1,58 +1,78 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-
 class IStrategyAlineacion(ABC):
-    """Interfaz para el patrón Strategy (alineación de texto)."""
     @abstractmethod
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
-        """
-        Toma una lista de palabras que componen la línea y el ancho total.
-        Devuelve la cadena de texto con la alineación aplicada.
-        """
         pass
 
-# 2. ESTRATEGIAS CONCRETAS
+# FUNCIÓN AUXILIAR CLAVE: Divide visualmente una palabra si excede el ancho.
+def _dividir_palabras_largas(palabras: List[str], ancho: int) -> List[str]:
+    """Divide visualmente una palabra si excede el ancho (solo si es la única palabra en la línea)."""
+    if len(palabras) == 1 and len(palabras[0]) > ancho:
+        palabra = palabras[0]
+        # Divide la palabra en fragmentos del tamaño del ancho
+        fragmentos = [palabra[i:i + ancho] for i in range(0, len(palabra), ancho)]
+        return fragmentos
+    return palabras
+
+
 class AlineacionIzquierda(IStrategyAlineacion):
-    """Estrategia Concreta: Alineación por defecto (izquierda)."""
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
-        texto = " ".join(palabras)
-        return texto.ljust(ancho)
+        palabras_visibles = _dividir_palabras_largas(palabras, ancho)
+        
+        # Si la palabra fue dividida visualmente, cada fragmento es una nueva línea
+        if len(palabras) == 1 and len(palabras_visibles) > 1:
+            lineas = [f.ljust(ancho) for f in palabras_visibles]
+            return "\n".join(lineas) + "\n"
+        
+        texto = " ".join(palabras_visibles)
+        return texto.ljust(ancho) + "\n" # Garantiza el salto de línea
 
 
 class AlineacionDerecha(IStrategyAlineacion):
-    """Estrategia Concreta - Alinea el texto a la derecha."""
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
-        texto = " ".join(palabras)
-        return texto.rjust(ancho)
+        palabras_visibles = _dividir_palabras_largas(palabras, ancho)
+        
+        if len(palabras) == 1 and len(palabras_visibles) > 1:
+            lineas = [f.rjust(ancho) for f in palabras_visibles]
+            return "\n".join(lineas) + "\n"
+        
+        texto = " ".join(palabras_visibles)
+        return texto.rjust(ancho) + "\n"
 
-
-class AlineacionCentrada(IStrategyAlineacion): 
-    """Estrategia Concreta - Alinea el texto al centro."""
+class AlineacionCentrada(IStrategyAlineacion):
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
-        texto = " ".join(palabras)
-        return texto.center(ancho)
-
+        palabras_visibles = _dividir_palabras_largas(palabras, ancho)
+        
+        if len(palabras) == 1 and len(palabras_visibles) > 1:
+            lineas = [f.center(ancho) for f in palabras_visibles]
+            return "\n".join(lineas) + "\n"
+        
+        texto = " ".join(palabras_visibles)
+        return texto.center(ancho) + "\n"
 
 class AlineacionJustificada(IStrategyAlineacion):
-    """Estrategia Concreta - Alinea el texto a la derecha y a la izquierda (Justificado)."""
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
-        texto_base = " ".join(palabras)
         
-      
         if len(palabras) <= 1:
-            return texto_base.ljust(ancho)
-
-        longitud_actual = len("".join(palabras))
-        espacios_totales = ancho - longitud_actual
-        num_huecos = len(palabras) - 1
-        
-        espacios_base = espacios_totales // num_huecos
-        espacios_extra = espacios_totales % num_huecos
-        
-        linea_final = palabras[0]
-        for i in range(1, len(palabras)):
-            espacios = espacios_base + (1 if i <= espacios_extra else 0)
-            linea_final += " " * espacios + palabras[i]
+            if not palabras:
+                return " " * ancho + "\n"
             
-        return linea_final.ljust(ancho)
+            # Si hay una palabra larga, se divide visualmente usando la alineación izquierda
+            palabras_visibles = _dividir_palabras_largas(palabras, ancho)
+            if len(palabras_visibles) > 1:
+                lineas = [f.ljust(ancho) for f in palabras_visibles]
+                return "\n".join(lineas) + "\n"
+            
+            return palabras[0].ljust(ancho) + "\n"
+        
+        # Lógica de Justificación para múltiples palabras
+        longitud_total = sum(len(p) for p in palabras)
+        espacios = ancho - longitud_total
+        huecos = len(palabras) - 1
+        base, extra = divmod(espacios, huecos)
+        linea = palabras[0]
+        for i, palabra in enumerate(palabras[1:], 1):
+            linea += " " * (base + (1 if i <= extra else 0)) + palabra
+        return linea + "\n"

@@ -1,77 +1,145 @@
 from typing import List
-from .component_main import ComponenteDocumento 
-from .linea import Linea 
-from .palabra import Palabra 
-from ..strategy.alineacion_strategy import IStrategyAlineacion 
+from src.composite.component_main import ComponenteDocumento
+from src.composite.linea import Linea
+from src.composite.palabra import Palabra
+from src.strategy.alineacion_strategy import IStrategyAlineacion, AlineacionIzquierda 
 
 class Parrafo(ComponenteDocumento):
-    """Compuesto (Composite) - Contiene líneas y gestiona el 'reflow' de palabras."""
-    def __init__(self):
+    """
+    Contenedor de líneas. Responsable de organizar el texto para que no se corten palabras
+    y aplicar reflow.
+    Patrón de Diseño: Composite (Component).
+    Ítem de Cambio Oculto: Lógica de reflow y ancho máximo de línea.
+    """
+    def __init__(self, ancho_linea: int = 40):
         self.hijos: List[Linea] = []
-        
+        self.ancho_linea = ancho_linea
+
     def agregar_linea(self, linea: Linea):
         self.hijos.append(linea)
 
     def contar_palabras(self) -> int:
-        return sum(hijo.contar_palabras() for hijo in self.hijos)
+        return sum(l.contar_palabras() for l in self.hijos)
+
+    def contar_lineas(self) -> int:
+        """
+        Calcula la cantidad total de líneas generadas.
+        AJUSTE CLAVE: Considera la división visual de palabras largas y evita contar
+        las líneas que solo contienen la palabra vacía del cursor.
+        """
+        conteo_lineas = 0
+        ancho = self.ancho_linea
+        
+        # Bandera para saber si el párrafo tiene contenido real (no solo el cursor)
+        tiene_contenido_real = any(p.texto.strip() for linea in self.hijos for p in linea.hijos)
+        
+        for linea in self.hijos:
+            # Palabras con texto significativo en esta línea
+            palabras_con_texto = [p.texto.strip() for p in linea.hijos if p.texto.strip()]
+            
+            # Caso especial: Si el párrafo está esencialmente vacío, la línea del cursor cuenta 1.
+            if not tiene_contenido_real:
+                return 1 if self.hijos else 0
+
+            # Caso 1: La línea solo contiene la palabra vacía del cursor (y hay más contenido en el párrafo)
+            if not palabras_con_texto:
+                continue # Ignoramos esta línea, ya que es solo la línea de trabajo/cursor.
+
+            # Caso 2: Una única palabra que el reflow puso sola porque es demasiado larga (División Visual)
+            if len(palabras_con_texto) == 1 and len(palabras_con_texto[0]) > ancho:
+                largo_palabra = len(palabras_con_texto[0])
+                # Cuenta cuántas líneas visuales ocupa esta palabra
+                lineas_visuales = (largo_palabra + ancho - 1) // ancho 
+                conteo_lineas += lineas_visuales
+                continue
+                
+            # Caso 3: Línea estándar (reflow ya la manejó)
+            conteo_lineas += 1 
+
+        # Si el conteo resultó 0 (solo queda la línea del cursor y se ignoró), lo fijamos a 1
+        if conteo_lineas == 0 and self.hijos:
+            return 1
+            
+        return conteo_lineas
 
     def mostrar(self) -> str:
-        """Responsabilidad: Unir las líneas, añadiendo un salto de línea entre ellas."""
-        return "\n".join(hijo.mostrar() for hijo in self.hijos)
-    
-    def cambiar_alineacion(self, nueva_alineacion: IStrategyAlineacion) -> None:
-        """Propaga la nueva estrategia de alineación a todas las Líneas contenidas en el párrafo."""
-        for linea in self.hijos:
+        # Usamos "".join() porque cada Linea (vía Strategy) ya devuelve el '\n'.
+        return "".join(l.mostrar() for l in self.hijos)
 
+    def cambiar_alineacion(self, nueva_alineacion: IStrategyAlineacion):
+        for linea in self.hijos:
             linea.cambiar_alineacion(nueva_alineacion)
 
     def _obtener_todas_las_palabras(self) -> List[Palabra]:
-        """Extrae todas las Palabras del Parrafo que contienen texto."""
-        palabras_secuenciales: List[Palabra] = []
+        """Extrae todas las palabras del párrafo en orden."""
+        palabras: List[Palabra] = []
         for linea in self.hijos:
-            for palabra in linea.hijos:
+            # Incluye solo palabras con texto, o la ÚNICA palabra vacía de una línea (el cursor)
+            palabras.extend(p for p in linea.hijos if p.texto or (len(linea.hijos) == 1 and not p.texto))
+        return palabras
 
-                if palabra.texto: 
-                    palabras_secuenciales.append(palabra)
-        return palabras_secuenciales
-    
-    
-    def aplicar_reflow(self, ancho_linea: int):
-        """Reconstruye la estructura de Líneas para ajustarse al ancho_linea sin cortar palabras."""
+    def aplicar_reflow(self) -> None:
+        """Reorganiza las palabras en líneas respetando el ancho_linea y sin cortar palabras."""
+        todas = self._obtener_todas_las_palabras()
         
-        todas_las_palabras = self._obtener_todas_las_palabras()
-        self.hijos.clear() 
-
-        if not todas_las_palabras:
-            linea_inicial = Linea(ancho=ancho_linea)
-            self.hijos.append(linea_inicial)
-            linea_inicial.hijos.append(Palabra(""))
+        # 1. Determinar la alineación actual antes de limpiar las líneas.
+        alineacion_previa = AlineacionIzquierda()
+        if self.hijos and self.hijos[0].hijos and self.hijos[0].alineacion:
+            alineacion_previa = self.hijos[0].alineacion
+        
+        self.hijos.clear()
+        
+        # Caso inicial de párrafo vacío
+        if not todas:
+            linea_vacia = Linea(ancho=self.ancho_linea)
+            linea_vacia.cambiar_alineacion(alineacion_previa)
+            linea_vacia.agregar_palabra(Palabra(""))
+            self.hijos.append(linea_vacia)
             return
 
-        linea_actual = Linea(ancho=ancho_linea)
+        linea_actual = Linea(ancho=self.ancho_linea)
+        linea_actual.cambiar_alineacion(alineacion_previa)
         self.hijos.append(linea_actual)
-        longitud_actual_linea = 0
+        longitud = 0
         
-        for palabra in todas_las_palabras:
-            longitud_palabra = len(palabra.texto)
-            espacio_requerido = 1 if longitud_actual_linea > 0 else 0
+        for i, palabra in enumerate(todas):
+            largo = len(palabra.texto)
+            # Solo añade espacio si hay texto previo y la palabra actual no está vacía
+            espacio = 1 if longitud > 0 and largo > 0 else 0 
             
-            if longitud_actual_linea + espacio_requerido + longitud_palabra > ancho_linea:
-                linea_actual = Linea(ancho=ancho_linea)
+            # Manejo de palabras que exceden el ancho de línea (CRÍTICO)
+            if largo > self.ancho_linea:
+                if longitud > 0:
+                    linea_actual = Linea(ancho=self.ancho_linea)
+                    linea_actual.cambiar_alineacion(alineacion_previa)
+                    self.hijos.append(linea_actual)
+                    longitud = 0
+                
+                # Agrega la palabra entera, la Strategy la dividirá visualmente
+                linea_actual.agregar_palabra(palabra)
+                longitud = largo
+                
+                # Forzar nueva línea después del desborde
+                linea_actual = Linea(ancho=self.ancho_linea)
+                linea_actual.cambiar_alineacion(alineacion_previa)
                 self.hijos.append(linea_actual)
-                linea_actual.hijos.append(palabra)
-                longitud_actual_linea = longitud_palabra
+                longitud = 0
+                continue
+            
+            # Lógica de Reflow estándar
+            if longitud + espacio + largo > self.ancho_linea:
+                nueva_linea = Linea(ancho=self.ancho_linea)
+                nueva_linea.cambiar_alineacion(linea_actual.alineacion) 
+                
+                self.hijos.append(nueva_linea)
+                linea_actual = nueva_linea
+                
+                linea_actual.agregar_palabra(palabra)
+                longitud = largo
             else:
-                linea_actual.hijos.append(palabra)
-                longitud_actual_linea += espacio_requerido + longitud_palabra
+                linea_actual.agregar_palabra(palabra)
+                longitud += espacio + largo
 
-
-        if longitud_actual_linea == ancho_linea:
-
-            nueva_linea_cursor = Linea(ancho=ancho_linea)
-            self.hijos.append(nueva_linea_cursor)
-            nueva_linea_cursor.hijos.append(Palabra(""))
-        
-
-        elif longitud_actual_linea < ancho_linea:
-            linea_actual.hijos.append(Palabra(""))
+        # Asegurar que la última línea tenga una palabra vacía para el cursor
+        if not linea_actual.hijos or (linea_actual.hijos[-1].texto.strip() and len(linea_actual.hijos) < linea_actual.ancho + 1):
+             linea_actual.agregar_palabra(Palabra(""))

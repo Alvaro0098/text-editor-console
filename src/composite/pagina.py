@@ -1,25 +1,55 @@
 from typing import List
-from .component_main import ComponenteDocumento
-from .parrafo import Parrafo 
-
+from src.composite.parrafo import Parrafo
+from src.composite.component_main import ComponenteDocumento
 
 class Pagina(ComponenteDocumento):
-    """Compuesto (Composite) - Contiene párrafos (Leaf o Composite)."""
-    
+    """
+    Contenedor de párrafos. Gestiona la división del contenido si excede el límite.
+    Patrón de Diseño: Composite (Component).
+    Ítem de Cambio Oculto: Límite físico de contenido (MAX_LINEAS_POR_PAGINA).
+    """
+    MAX_LINEAS_POR_PAGINA = 15 
+
     def __init__(self):
         self.hijos: List[Parrafo] = []
 
     def agregar_parrafo(self, parrafo: Parrafo):
-        """Método de gestión: añade un Parrafo a la Página."""
         self.hijos.append(parrafo)
 
+    def dividir_en_paginas(self) -> List["Pagina"]:
+        """
+        Divide el contenido en páginas. Nota: La lógica principal de paginación
+        se centraliza en Documento.actualizar_paginas(). Este método se usa
+        principalmente para compatibilidad o para dividir una página individual.
+        """
+        paginas: List[Pagina] = []
+        pagina_actual = Pagina()
+        lineas_en_pagina = 0
+        
+        for parrafo in self.hijos:
+            parrafo.aplicar_reflow() # Asegura que esté en formato
+            
+            # Lógica de división simplificada (usa el párrafo completo como unidad de división)
+            parrafo_lineas = parrafo.contar_lineas()
+            
+            if lineas_en_pagina + parrafo_lineas > Pagina.MAX_LINEAS_POR_PAGINA and lineas_en_pagina > 0:
+                paginas.append(pagina_actual)
+                pagina_actual = Pagina()
+                lineas_en_pagina = 0
+            
+            pagina_actual.agregar_parrafo(parrafo)
+            lineas_en_pagina += parrafo_lineas
+
+        if pagina_actual.hijos:
+            paginas.append(pagina_actual)
+            
+        return paginas
+
     def contar_palabras(self) -> int:
-        """Operación: Delega la acción a todos los Parrafos hijos y suma los resultados."""
-        return sum(hijo.contar_palabras() for hijo in self.hijos)
+        return sum(p.contar_palabras() for p in self.hijos)
+
+    def contar_lineas(self) -> int:
+        return sum(p.contar_lineas() for p in self.hijos)
 
     def mostrar(self) -> str:
-        """
-        Operación: Muestra el contenido de la Página.
-        Delega la acción a cada Parrafo hijo y los une con un doble salto de línea ('\n\n').
-        """
-        return "\n\n".join(hijo.mostrar() for hijo in self.hijos)
+        return "\n\n".join(p.mostrar() for p in self.hijos)
