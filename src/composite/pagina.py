@@ -1,23 +1,12 @@
-# composite/pagina.py
-
-# 1. Necesario para las anotaciones de tipo List
 from typing import List
-
-# 2. Asumimos que ComponenteDocumento es la clase base (el Componente)
-# y que se encuentra en un módulo dentro del mismo paquete.
 from .component_main import ComponenteDocumento
-
-# 3. Necesitamos importar Parrafo para las anotaciones de tipo,
-# ya que Pagina lo contiene. Asumimos que está en el mismo paquete.
 from .parrafo import Parrafo 
-# Nota: Si Parrafo no existe aún, tendrás que crearlo como otro 'Componente'
-# (posiblemente otro Composite, o un Leaf si contiene Linea/Palabra).
+
 
 class Pagina(ComponenteDocumento):
     """Compuesto (Composite) - Contiene párrafos (Leaf o Composite)."""
     
     def __init__(self):
-        # La lista de hijos (los Parrafos)
         self.hijos: List[Parrafo] = []
 
     def agregar_parrafo(self, parrafo: Parrafo):

@@ -1,6 +1,4 @@
-# 4. src/command/agregar_caracter_command.py (CORREGIDO)
-from .command_interface import ICommand # <--- ¡Añadido! (relativo)
-# CORRECCIÓN DE RUTA: Busca los receptores en el paquete 'composite'
+from .command_interface import ICommand 
 from src.composite.linea import Linea
 from src.composite.palabra import Palabra
 class AgregarCaracterCommand(ICommand):
