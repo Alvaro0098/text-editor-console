@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-# 🚨 FALTABA: Importar la clase base desde el archivo hermano.
 from .component_main import ComponenteDocumento
 
 @dataclass
@@ -15,7 +14,6 @@ class Palabra(ComponenteDocumento):
         """Responsabilidad: Retorna su propio texto."""
         return self.texto
     
-    # Edición - Ítem de Cambio Escondido: Cómo se modifica el contenido de la palabra.
     def insertar_caracter(self, index: int, char: str) -> None:
         if index <= 0: self.texto = char + self.texto
         elif index >= len(self.texto): self.texto = self.texto + char

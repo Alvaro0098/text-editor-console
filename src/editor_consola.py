@@ -55,7 +55,6 @@ class EditorConsola:
         p_idx, par_idx, lin_idx, _, _ = self.cursor
         self.cursor = (p_idx, par_idx, lin_idx, palabra_idx, char_offset)
     
-    # Recalcular cursor posicionamiento
     def _recalcular_cursor_post_reflow(self, palabra_referencia: Palabra, offset_caracter: int):
         """Busca las nuevas coordenadas de línea/palabra para el cursor después del reflow."""
         
@@ -72,13 +71,15 @@ class EditorConsola:
 
 
     def insertar_caracter(self, caracter: str) -> None:
+    
+        cursor_pos_anterior = self.cursor 
         _, _, _, palabra_idx, char_offset = self.cursor
         linea = self.current_linea()
-        
-
         palabra_modificada = linea.hijos[palabra_idx] 
         
         cmd = AgregarCaracterCommand(linea, palabra_idx, char_offset, caracter)
+        cmd.cursor_pos_antes = cursor_pos_anterior
+        
         self.invoker.ejecutar(cmd)
         
         nuevo_offset = char_offset + 1
@@ -86,7 +87,12 @@ class EditorConsola:
         self._recalcular_cursor_post_reflow(palabra_modificada, nuevo_offset)
 
 
+        cmd.cursor_pos_despues = self.cursor 
+
     def eliminar_caracter(self) -> None:
+
+        cursor_pos_anterior = self.cursor 
+
         _, _, _, palabra_idx, char_offset = self.cursor
         if char_offset == 0: return 
 
@@ -95,17 +101,40 @@ class EditorConsola:
         palabra_modificada = linea.hijos[palabra_idx] 
         
         cmd = EliminarCaracterCommand(linea, palabra_idx, borrar_pos)
+        cmd.cursor_pos_antes = cursor_pos_anterior 
+        
         self.invoker.ejecutar(cmd)
         
         self.current_parrafo().aplicar_reflow(self.ancho_linea) 
         
         self._recalcular_cursor_post_reflow(palabra_modificada, borrar_pos)
 
+        cmd.cursor_pos_despues = self.cursor 
+
+# src/editor_consola.py (SOLO MODIFICACIONES EN DESHACER/REHACER)
+
     def deshacer(self) -> None:
-        self.invoker.deshacer()
+        comando_deshecho = self.invoker.deshacer()
         
+        if comando_deshecho and hasattr(comando_deshecho, 'cursor_pos_antes'):
+            
+            # 1. 🚩 ESTABILIZAR EL DOCUMENTO: Aplicar Reflow al texto recién deshecho.
+            #    Esto garantiza que las palabras estén en las líneas correctas antes de posicionar.
+            self.current_parrafo().aplicar_reflow(self.ancho_linea)
+            
+            # 2. RESTAURAR EL CURSOR: Usar la posición que era válida en el estado anterior.
+            self.cursor = comando_deshecho.cursor_pos_antes
+            
     def rehacer(self) -> None: 
-        self.invoker.rehacer()
+        comando_rehecho = self.invoker.rehacer()
+        
+        if comando_rehecho and hasattr(comando_rehecho, 'cursor_pos_despues'):
+            
+            # 1. ESTABILIZAR EL DOCUMENTO: Aplicar Reflow al texto recién rehecho.
+            self.current_parrafo().aplicar_reflow(self.ancho_linea)
+            
+            # 2. RESTAURAR EL CURSOR: Usar la posición que fue calculada después de la acción original.
+            self.cursor = comando_rehecho.cursor_pos_despues
         
     def cambiar_alineacion(self, nombre_estrategia: str) -> None: 
         estrategias = {

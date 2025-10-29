@@ -27,6 +27,6 @@ class Linea(ComponenteDocumento):
         """Ítem de Cambio Escondido: El algoritmo de alineación."""
         self.alineacion = nueva_alineacion
         
-    # Métodos de edición simplificados para uso por Command
+
     def get_palabra(self, idx: int) -> Palabra:
         return self.hijos[idx]

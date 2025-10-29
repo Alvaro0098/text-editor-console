@@ -1,10 +1,6 @@
-# strategy/alineacion_strategy.py
 from abc import ABC, abstractmethod
 from typing import List
 
-# ------------------------------------------------------------------
-# 1. INTERFAZ (ABSTRACT BASE CLASS)
-# ------------------------------------------------------------------
 
 class IStrategyAlineacion(ABC):
     """Interfaz para el patrón Strategy (alineación de texto)."""
@@ -16,10 +12,7 @@ class IStrategyAlineacion(ABC):
         """
         pass
 
-# ------------------------------------------------------------------
 # 2. ESTRATEGIAS CONCRETAS
-# ------------------------------------------------------------------
-
 class AlineacionIzquierda(IStrategyAlineacion):
     """Estrategia Concreta: Alineación por defecto (izquierda)."""
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
@@ -46,7 +39,7 @@ class AlineacionJustificada(IStrategyAlineacion):
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
         texto_base = " ".join(palabras)
         
-        # Caso base: Si es la última línea o solo tiene una palabra, se alinea a la izquierda.
+      
         if len(palabras) <= 1:
             return texto_base.ljust(ancho)
 
