@@ -2,13 +2,26 @@ from abc import ABC, abstractmethod
 from typing import List
 
 class IStrategyAlineacion(ABC):
+    """
+    ROL: Strategy (Interfaz).
+    RESPONSABILIDAD: Definir la interfaz común para todos los algoritmos de alineación
+                     soportados por el editor (Izquierda, Derecha, Centrada, Justificada).
+    ÍTEM DE CAMBIO OCULTO: Permite añadir nuevas estrategias de alineación sin modificar
+                          las clases Linea o Parrafo.
+    """
     @abstractmethod
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
         pass
 
 # FUNCIÓN AUXILIAR CLAVE: Divide visualmente una palabra si excede el ancho.
 def _dividir_palabras_largas(palabras: List[str], ancho: int) -> List[str]:
-    """Divide visualmente una palabra si excede el ancho (solo si es la única palabra en la línea)."""
+    """
+    Función auxiliar para dividir una palabra si su longitud excede el ancho de la línea.
+    Esto asegura que el reflow y el renderizado no rompan el formato.
+    """
+    if len(palabras) == 1 and palabras[0] == '\n': # Excluir el ancla de salto de linea
+        return ['\n']
+        
     if len(palabras) == 1 and len(palabras[0]) > ancho:
         palabra = palabras[0]
         # Divide la palabra en fragmentos del tamaño del ancho
@@ -18,6 +31,12 @@ def _dividir_palabras_largas(palabras: List[str], ancho: int) -> List[str]:
 
 
 class AlineacionIzquierda(IStrategyAlineacion):
+    """
+    ROL: Concrete Strategy.
+    RESPONSABILIDAD: Implementar el algoritmo de alineación a la izquierda,
+                     añadiendo espacios a la derecha del texto para alcanzar el ancho.
+    ÍTEM DE CAMBIO OCULTO: La implementación específica de ljust (alineación izquierda).
+    """
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
         palabras_visibles = _dividir_palabras_largas(palabras, ancho)
         
@@ -31,6 +50,12 @@ class AlineacionIzquierda(IStrategyAlineacion):
 
 
 class AlineacionDerecha(IStrategyAlineacion):
+    """
+    ROL: Concrete Strategy.
+    RESPONSABILIDAD: Implementar el algoritmo de alineación a la derecha,
+                     añadiendo espacios a la izquierda del texto para alcanzar el ancho.
+    ÍTEM DE CAMBIO OCULTO: La implementación específica de rjust (alineación derecha).
+    """
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
         palabras_visibles = _dividir_palabras_largas(palabras, ancho)
         
@@ -42,6 +67,12 @@ class AlineacionDerecha(IStrategyAlineacion):
         return texto.rjust(ancho) + "\n"
 
 class AlineacionCentrada(IStrategyAlineacion):
+    """
+    ROL: Concrete Strategy.
+    RESPONSABILIDAD: Implementar el algoritmo de alineación centrada,
+                     distribuyendo equitativamente los espacios a ambos lados del texto.
+    ÍTEM DE CAMBIO OCULTO: La implementación específica de center (alineación centrada).
+    """
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
         palabras_visibles = _dividir_palabras_largas(palabras, ancho)
         
@@ -53,6 +84,14 @@ class AlineacionCentrada(IStrategyAlineacion):
         return texto.center(ancho) + "\n"
 
 class AlineacionJustificada(IStrategyAlineacion):
+    """
+    ROL: Concrete Strategy.
+    RESPONSABILIDAD: Implementar el algoritmo de alineación justificada, distribuyendo
+                     los espacios vacíos entre las palabras para que la línea ocupe
+                     exactamente el ancho definido.
+    ÍTEM DE CAMBIO OCULTO: La lógica matemática para distribuir los espacios remanentes
+                          (uso de divmod).
+    """
     def aplicar_alineacion(self, palabras: List[str], ancho: int) -> str:
         
         if len(palabras) <= 1:
@@ -71,8 +110,15 @@ class AlineacionJustificada(IStrategyAlineacion):
         longitud_total = sum(len(p) for p in palabras)
         espacios = ancho - longitud_total
         huecos = len(palabras) - 1
+        
+        # divmod(a, b) retorna (a // b, a % b) -> (base, extra)
         base, extra = divmod(espacios, huecos)
+        
         linea = palabras[0]
+        # Se itera sobre las palabras desde la segunda (índice 1) hasta el final
         for i, palabra in enumerate(palabras[1:], 1):
-            linea += " " * (base + (1 if i <= extra else 0)) + palabra
+            # Agrega la cantidad base de espacios + 1 extra para los primeros 'extra' huecos
+            num_espacios = base + (1 if i <= extra else 0)
+            linea += " " * num_espacios + palabra
+            
         return linea + "\n"
