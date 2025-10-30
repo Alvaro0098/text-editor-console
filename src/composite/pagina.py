@@ -8,7 +8,8 @@ class Pagina(ComponenteDocumento):
     Patrón de Diseño: Composite (Component).
     Ítem de Cambio Oculto: Límite físico de contenido (MAX_LINEAS_POR_PAGINA).
     """
-    MAX_LINEAS_POR_PAGINA = 15 
+    # 🚨 FIX CRUCIAL: Límite de 8 líneas.
+    MAX_LINEAS_POR_PAGINA = 8
 
     def __init__(self):
         self.hijos: List[Parrafo] = []
